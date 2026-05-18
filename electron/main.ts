@@ -19,6 +19,9 @@ interface Settings {
 	outputDirectory: string;
 	theme: "light" | "dark";
 	zipAutoDownload: boolean;
+	base64RemoveQualifier: boolean;
+	base64CustomFormat: string;
+	base64CopyAll: boolean;
 }
 
 const getSettingsPath = () =>
@@ -29,6 +32,9 @@ const getDefaultSettings = (): Settings => ({
 	outputDirectory: app.getPath("downloads"),
 	theme: "dark",
 	zipAutoDownload: false,
+	base64RemoveQualifier: false,
+	base64CustomFormat: "$base64",
+	base64CopyAll: false,
 });
 
 // Helper for MIME types

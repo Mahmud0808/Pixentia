@@ -3,6 +3,9 @@ export interface AppSettings {
   outputDirectory: string;
   theme: 'light' | 'dark';
   zipAutoDownload: boolean;
+  base64RemoveQualifier: boolean;
+  base64CustomFormat: string;
+  base64CopyAll: boolean;
 }
 
 export type ProcessingStatus = 'idle' | 'processing' | 'done' | 'error';

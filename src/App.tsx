@@ -14,6 +14,9 @@ export const App: React.FC = () => {
     outputDirectory: '',
     theme: 'dark',
     zipAutoDownload: false,
+    base64RemoveQualifier: false,
+    base64CustomFormat: '$base64',
+    base64CopyAll: false,
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -168,6 +171,7 @@ export const App: React.FC = () => {
             onClearQueue={() => setBase64Files([])}
             onRemoveFile={(id) => setBase64Files((prev) => prev.filter((f) => f.id !== id))}
             onShowToast={showToast}
+            settings={settings}
           />
         )}
 

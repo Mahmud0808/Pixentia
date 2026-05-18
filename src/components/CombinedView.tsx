@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DropZone } from './DropZone';
 import { FileCard } from './FileCard';
 import type { QueuedFile, AppSettings } from '../types';
-import { Sliders, Play, Layers, Loader2 } from 'lucide-react';
+import { Sliders, Play, Layers, Loader2, Copy, Check } from 'lucide-react';
 
 interface CombinedViewProps {
   files: QueuedFile[];
@@ -27,6 +27,7 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
 }) => {
   const [quality, setQuality] = useState(settings.compressionQuality);
   const [isProcessingAll, setIsProcessingAll] = useState(false);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   useEffect(() => {
     setQuality(settings.compressionQuality);
@@ -38,6 +39,16 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
 
   const handleQualityCommit = async () => {
     await onUpdateSettings({ compressionQuality: quality });
+  };
+
+  const getFormattedBase64 = (base64Str?: string) => {
+    if (!base64Str) return '';
+    let resultStr = base64Str;
+    if (settings.base64RemoveQualifier) {
+      resultStr = base64Str.replace(/^data:[^;]+;base64,/, '');
+    }
+    const template = settings.base64CustomFormat || '$base64';
+    return template.replace('$base64', resultStr);
   };
 
   const runSinglePipeline = async (file: QueuedFile) => {
@@ -90,7 +101,23 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
     setIsProcessingAll(false);
   };
 
+  const handleCopyAll = async () => {
+    const completedFiles = files.filter((f) => f.status === 'done' && f.base64);
+    if (completedFiles.length === 0) return;
+    try {
+      const allStrings = completedFiles.map((f) => getFormattedBase64(f.base64)).join('\n');
+      await navigator.clipboard.writeText(allStrings);
+      setCopiedAll(true);
+      onShowToast('Copied all Base64 strings to clipboard', 'success');
+      setTimeout(() => setCopiedAll(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy all base64:', err);
+      onShowToast('Failed to copy Base64 strings', 'error');
+    }
+  };
+
   const idleCount = files.filter((f) => f.status === 'idle').length;
+  const completedCount = files.filter((f) => f.status === 'done' && f.base64).length;
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in">
@@ -137,14 +164,28 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
             <Layers className="w-5 h-5" />
             <h3 className="font-bold text-sm">Sequential Pipeline</h3>
           </div>
-          <button
-            onClick={handleRunAllPipeline}
-            disabled={idleCount === 0 || isProcessingAll}
-            className="btn-primary w-full py-3 text-sm font-bold bg-purple-600 hover:bg-purple-500 active:bg-purple-700 shadow-purple-500/25"
-          >
-            {isProcessingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
-            {isProcessingAll ? 'Running Pipeline...' : `Start Pipeline (${idleCount})`}
-          </button>
+          <div className="flex flex-col gap-2">
+            {settings.base64CopyAll && completedCount > 0 && (
+              <button
+                onClick={handleCopyAll}
+                className={`btn-secondary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 ${
+                  copiedAll ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30' : ''
+                }`}
+              >
+                {copiedAll ? <Check className="w-4 h-4 animate-scale-in" /> : <Copy className="w-4 h-4" />}
+                {copiedAll ? 'Copied All Base64!' : `Copy All Base64 (${completedCount})`}
+              </button>
+            )}
+
+            <button
+              onClick={handleRunAllPipeline}
+              disabled={idleCount === 0 || isProcessingAll}
+              className="btn-primary w-full py-3 text-sm font-bold bg-purple-600 hover:bg-purple-500 active:bg-purple-700 shadow-purple-500/25 justify-center"
+            >
+              {isProcessingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
+              {isProcessingAll ? 'Running Pipeline...' : `Start Pipeline (${idleCount})`}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -166,6 +207,7 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
               onRemove={onRemoveFile}
               showCompressorResults={file.isImage}
               showBase64Results={true}
+              settings={settings}
               onDownload={async (f) => {
                 if (!f.outputPath) return;
                 try {

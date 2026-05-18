@@ -3,7 +3,7 @@ import {
   FileText, Image as ImageIcon, Film, FileAudio, FileCode, Package, 
   Download, Copy, Check, Trash2, ChevronDown, ChevronUp, AlertCircle, Loader2 
 } from 'lucide-react';
-import type { QueuedFile } from '../types';
+import type { QueuedFile, AppSettings } from '../types';
 
 interface FileCardProps {
   file: QueuedFile;
@@ -11,6 +11,7 @@ interface FileCardProps {
   onDownload?: (file: QueuedFile) => void;
   showCompressorResults?: boolean;
   showBase64Results?: boolean;
+  settings?: AppSettings;
 }
 
 export const FileCard: React.FC<FileCardProps> = ({
@@ -19,6 +20,7 @@ export const FileCard: React.FC<FileCardProps> = ({
   onDownload,
   showCompressorResults = false,
   showBase64Results = false,
+  settings,
 }) => {
   const [copied, setCopied] = useState(false);
   const [base64Open, setBase64Open] = useState(false);
@@ -32,10 +34,21 @@ export const FileCard: React.FC<FileCardProps> = ({
     }
   }, [file]);
 
+  const getFormattedBase64 = (base64Str?: string) => {
+    if (!base64Str) return '';
+    let resultStr = base64Str;
+    if (settings?.base64RemoveQualifier) {
+      resultStr = base64Str.replace(/^data:[^;]+;base64,/, '');
+    }
+    const template = settings?.base64CustomFormat || '$base64';
+    return template.replace('$base64', resultStr);
+  };
+
   const handleCopyBase64 = async () => {
     if (!file.base64) return;
     try {
-      await navigator.clipboard.writeText(file.base64);
+      const formatted = getFormattedBase64(file.base64);
+      await navigator.clipboard.writeText(formatted);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -189,7 +202,7 @@ export const FileCard: React.FC<FileCardProps> = ({
             <div className="relative animate-slide-up">
               <textarea
                 readOnly
-                value={file.base64}
+                value={getFormattedBase64(file.base64)}
                 rows={4}
                 className="w-full bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-600 dark:text-slate-400 focus:outline-none focus:border-brand-500 dark:focus:border-brand-500/50 resize-none selection:bg-brand-500/20 selection:text-brand-400"
                 onClick={(e) => (e.target as HTMLTextAreaElement).select()}

@@ -12,6 +12,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onClose,
   const [outputDir, setOutputDir] = useState(settings.outputDirectory);
   const [theme, setTheme] = useState(settings.theme);
   const [zipAuto, setZipAuto] = useState(settings.zipAutoDownload);
+  const [base64RemoveQualifier, setBase64RemoveQualifier] = useState(settings.base64RemoveQualifier ?? false);
+  const [base64CustomFormat, setBase64CustomFormat] = useState(settings.base64CustomFormat ?? '$base64');
+  const [base64CopyAll, setBase64CopyAll] = useState(settings.base64CopyAll ?? false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -32,6 +35,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onClose,
       outputDirectory: outputDir,
       theme,
       zipAutoDownload: zipAuto,
+      base64RemoveQualifier,
+      base64CustomFormat,
+      base64CopyAll,
     });
     setSaving(false);
     setSaved(true);
@@ -135,6 +141,65 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onClose,
               />
               <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-brand-600"></div>
             </label>
+          </div>
+
+          {/* Base64 Encoder Customization Section */}
+          <div className="flex flex-col gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-6">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+              Base64 Encoder Customization
+            </h3>
+
+            {/* Remove Qualifier Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-slate-800 rounded-2xl">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-slate-800 dark:text-white">Remove Data URI Qualifier</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Strip the prefix (e.g., <code className="text-purple-400">data:image/png;base64,</code>) from the output</span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={base64RemoveQualifier}
+                  onChange={(e) => setBase64RemoveQualifier(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-purple-600"></div>
+              </label>
+            </div>
+
+            {/* Custom Output Format Field */}
+            <div className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-slate-800 rounded-2xl">
+              <label className="text-sm font-semibold text-slate-800 dark:text-white">
+                Custom Output Template
+              </label>
+              <input
+                type="text"
+                value={base64CustomFormat}
+                onChange={(e) => setBase64CustomFormat(e.target.value)}
+                placeholder="$base64"
+                className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none font-mono"
+              />
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
+                Use <code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">$base64</code> as the placeholder variable. Example: If you put <code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">&lt;img src="$base64" /&gt;</code>, copying the result will output the Base64 string directly inside the HTML image tag.
+              </p>
+            </div>
+
+            {/* Enable Copy All Base64 Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-slate-800 rounded-2xl">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-slate-800 dark:text-white">Enable "Copy All Base64" Action</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Allow copying all generated Base64 strings at once, separated by newlines</span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={base64CopyAll}
+                  onChange={(e) => setBase64CopyAll(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-purple-600"></div>
+              </label>
+            </div>
           </div>
         </div>
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { DropZone } from './DropZone';
 import { FileCard } from './FileCard';
-import type { QueuedFile } from '../types';
-import { Play, Loader2 } from 'lucide-react';
+import type { QueuedFile, AppSettings } from '../types';
+import { Play, Loader2, Copy, Check } from 'lucide-react';
 
 interface Base64ViewProps {
   files: QueuedFile[];
@@ -11,6 +11,7 @@ interface Base64ViewProps {
   onClearQueue: () => void;
   onRemoveFile: (id: string) => void;
   onShowToast: (message: string, type?: 'success' | 'error') => void;
+  settings: AppSettings;
 }
 
 export const Base64View: React.FC<Base64ViewProps> = ({
@@ -20,8 +21,20 @@ export const Base64View: React.FC<Base64ViewProps> = ({
   onClearQueue,
   onRemoveFile,
   onShowToast: _onShowToast,
+  settings,
 }) => {
   const [isProcessingAll, setIsProcessingAll] = useState(false);
+  const [copiedAll, setCopiedAll] = useState(false);
+
+  const getFormattedBase64 = (base64Str?: string) => {
+    if (!base64Str) return '';
+    let resultStr = base64Str;
+    if (settings.base64RemoveQualifier) {
+      resultStr = base64Str.replace(/^data:[^;]+;base64,/, '');
+    }
+    const template = settings.base64CustomFormat || '$base64';
+    return template.replace('$base64', resultStr);
+  };
 
   const convertSingleFile = async (file: QueuedFile) => {
     if (!file.filePath) return;
@@ -63,7 +76,23 @@ export const Base64View: React.FC<Base64ViewProps> = ({
     setIsProcessingAll(false);
   };
 
+  const handleCopyAll = async () => {
+    const completedFiles = files.filter((f) => f.status === 'done' && f.base64);
+    if (completedFiles.length === 0) return;
+    try {
+      const allStrings = completedFiles.map((f) => getFormattedBase64(f.base64)).join('\n');
+      await navigator.clipboard.writeText(allStrings);
+      setCopiedAll(true);
+      _onShowToast('Copied all Base64 strings to clipboard', 'success');
+      setTimeout(() => setCopiedAll(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy all base64:', err);
+      _onShowToast('Failed to copy Base64 strings', 'error');
+    }
+  };
+
   const idleCount = files.filter((f) => f.status === 'idle').length;
+  const completedCount = files.filter((f) => f.status === 'done' && f.base64).length;
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in">
@@ -76,14 +105,28 @@ export const Base64View: React.FC<Base64ViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={handleConvertAll}
-          disabled={idleCount === 0 || isProcessingAll}
-          className="btn-primary py-3 px-6 text-sm font-bold flex-shrink-0 w-full md:w-auto"
-        >
-          {isProcessingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
-          {isProcessingAll ? 'Encoding Files...' : `Encode ${idleCount > 0 ? idleCount : ''} Files to Base64`}
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 flex-shrink-0 w-full md:w-auto">
+          {settings.base64CopyAll && completedCount > 0 && (
+            <button
+              onClick={handleCopyAll}
+              className={`btn-secondary py-3 px-6 text-sm font-bold flex items-center justify-center gap-2 w-full sm:w-auto ${
+                copiedAll ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30' : ''
+              }`}
+            >
+              {copiedAll ? <Check className="w-4 h-4 animate-scale-in" /> : <Copy className="w-4 h-4" />}
+              {copiedAll ? 'Copied All!' : `Copy All (${completedCount})`}
+            </button>
+          )}
+
+          <button
+            onClick={handleConvertAll}
+            disabled={idleCount === 0 || isProcessingAll}
+            className="btn-primary py-3 px-6 text-sm font-bold flex-shrink-0 w-full sm:w-auto justify-center"
+          >
+            {isProcessingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
+            {isProcessingAll ? 'Encoding Files...' : `Encode ${idleCount > 0 ? idleCount : ''} Files to Base64`}
+          </button>
+        </div>
       </div>
 
       {/* Drop Zone */}
@@ -103,6 +146,7 @@ export const Base64View: React.FC<Base64ViewProps> = ({
               file={file}
               onRemove={onRemoveFile}
               showBase64Results={true}
+              settings={settings}
             />
           ))}
         </div>
