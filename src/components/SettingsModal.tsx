@@ -179,9 +179,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onClose,
                 placeholder="$base64"
                 className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none font-mono"
               />
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
-                Use <code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">$base64</code> as the placeholder variable. Example: If you put <code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">&lt;img src="$base64" /&gt;</code>, copying the result will output the Base64 string directly inside the HTML image tag.
-              </p>
+              <div className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed flex flex-col gap-1">
+                <span>Available placeholder variables:</span>
+                <ul className="list-disc list-inside space-y-0.5 ml-1">
+                  <li><code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">$base64</code> : The Base64 data string</li>
+                  <li><code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">$name</code> : File name without extension (e.g., <code className="text-slate-500 dark:text-slate-400">image</code>)</li>
+                  <li><code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">$filename</code> : Full file name (e.g., <code className="text-slate-500 dark:text-slate-400">image.png</code>)</li>
+                  <li><code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">$ext</code> : File extension (e.g., <code className="text-slate-500 dark:text-slate-400">png</code>)</li>
+                </ul>
+                <span className="mt-1">Example: <code className="text-purple-500 font-semibold bg-purple-50 dark:bg-purple-500/10 px-1 py-0.5 rounded">const $name = "$base64";</code></span>
+              </div>
             </div>
 
             {/* Enable Copy All Base64 Toggle */}

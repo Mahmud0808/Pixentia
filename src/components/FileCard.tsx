@@ -41,7 +41,13 @@ export const FileCard: React.FC<FileCardProps> = ({
       resultStr = base64Str.replace(/^data:[^;]+;base64,/, '');
     }
     const template = settings?.base64CustomFormat || '$base64';
-    return template.replace('$base64', resultStr);
+    const extClean = file.extension ? file.extension.replace(/^\./, '') : '';
+    const nameClean = file.name ? file.name.replace(/\.[^/.]+$/, '') : '';
+    return template
+      .replace(/\$base64/g, resultStr)
+      .replace(/\$filename/g, file.name || '')
+      .replace(/\$name/g, nameClean)
+      .replace(/\$ext/g, extClean);
   };
 
   const handleCopyBase64 = async () => {

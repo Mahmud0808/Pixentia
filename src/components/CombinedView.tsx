@@ -43,14 +43,20 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
     await onUpdateSettings({ compressionQuality: quality });
   };
 
-  const getFormattedBase64 = (base64Str?: string) => {
-    if (!base64Str) return '';
-    let resultStr = base64Str;
+  const getFormattedBase64 = (file: QueuedFile) => {
+    if (!file.base64) return '';
+    let resultStr = file.base64;
     if (settings.base64RemoveQualifier) {
-      resultStr = base64Str.replace(/^data:[^;]+;base64,/, '');
+      resultStr = file.base64.replace(/^data:[^;]+;base64,/, '');
     }
     const template = settings.base64CustomFormat || '$base64';
-    return template.replace('$base64', resultStr);
+    const extClean = file.extension ? file.extension.replace(/^\./, '') : '';
+    const nameClean = file.name ? file.name.replace(/\.[^/.]+$/, '') : '';
+    return template
+      .replace(/\$base64/g, resultStr)
+      .replace(/\$filename/g, file.name || '')
+      .replace(/\$name/g, nameClean)
+      .replace(/\$ext/g, extClean);
   };
 
   const runSinglePipeline = async (file: QueuedFile): Promise<QueuedFile> => {
@@ -142,7 +148,7 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
     const completedFiles = files.filter((f) => f.status === 'done' && f.base64);
     if (completedFiles.length === 0) return;
     try {
-      const allStrings = completedFiles.map((f) => getFormattedBase64(f.base64)).join('\n');
+      const allStrings = completedFiles.map((f) => getFormattedBase64(f)).join('\n');
       await navigator.clipboard.writeText(allStrings);
       setCopiedAll(true);
       onShowToast('Copied all Base64 strings to clipboard', 'success');
