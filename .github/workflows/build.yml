@@ -1,0 +1,37 @@
+name: Build Electron Windows App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual triggering from GitHub Actions UI
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22 # Use latest LTS or stable Node.js matching development environment
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci # Clean install using package-lock.json
+
+      - name: Build Electron App
+        run: npm run build:electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed if electron-builder tries to fetch/publish GitHub releases
+
+      - name: Upload Windows Executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pixentia-Windows-Executables
+          path: dist-electron-build/*.exe
+          if-no-files-found: error
