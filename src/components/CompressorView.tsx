@@ -46,8 +46,8 @@ export const CompressorView: React.FC<CompressorViewProps> = ({
   };
 
   // Compress a single file
-  const compressSingleFile = async (file: QueuedFile) => {
-    if (!file.filePath || !file.isImage) return;
+  const compressSingleFile = async (file: QueuedFile): Promise<QueuedFile> => {
+    if (!file.filePath || !file.isImage) return file;
 
     setFiles((prev) => prev.map((f) => (f.id === file.id ? { ...f, status: 'processing' } : f)));
 
@@ -59,27 +59,27 @@ export const CompressorView: React.FC<CompressorViewProps> = ({
       });
 
       if (result.success) {
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === file.id
-              ? {
-                  ...f,
-                  status: 'done',
-                  originalSize: result.originalSize,
-                  compressedSize: result.compressedSize,
-                  percentageChange: result.percentageChange,
-                  outputPath: result.outputPath,
-                  width: result.width,
-                  height: result.height,
-                }
-              : f
-          )
-        );
+        const updatedFile: QueuedFile = {
+          ...file,
+          status: 'done',
+          originalSize: result.originalSize,
+          compressedSize: result.compressedSize,
+          percentageChange: result.percentageChange,
+          outputPath: result.outputPath,
+          width: result.width,
+          height: result.height,
+        };
+        setFiles((prev) => prev.map((f) => (f.id === file.id ? updatedFile : f)));
+        return updatedFile;
       } else {
-        setFiles((prev) => prev.map((f) => (f.id === file.id ? { ...f, status: 'error', error: result.error } : f)));
+        const updatedFile: QueuedFile = { ...file, status: 'error', error: result.error };
+        setFiles((prev) => prev.map((f) => (f.id === file.id ? updatedFile : f)));
+        return updatedFile;
       }
     } catch (err: any) {
-      setFiles((prev) => prev.map((f) => (f.id === file.id ? { ...f, status: 'error', error: err.message } : f)));
+      const updatedFile: QueuedFile = { ...file, status: 'error', error: err.message };
+      setFiles((prev) => prev.map((f) => (f.id === file.id ? updatedFile : f)));
+      return updatedFile;
     }
   };
 
@@ -89,20 +89,24 @@ export const CompressorView: React.FC<CompressorViewProps> = ({
     if (idleFiles.length === 0) return;
 
     setIsProcessingAll(true);
+    const updatedFiles: QueuedFile[] = [...files];
     for (const file of idleFiles) {
-      await compressSingleFile(file);
+      const res = await compressSingleFile(file);
+      const idx = updatedFiles.findIndex((f) => f.id === res.id);
+      if (idx !== -1) updatedFiles[idx] = res;
     }
     setIsProcessingAll(false);
 
     // Check auto-zip setting
     if (settings.zipAutoDownload) {
-      await handleDownloadZip();
+      await handleDownloadZip(updatedFiles);
     }
   };
 
   // Download all completed as ZIP
-  const handleDownloadZip = async () => {
-    const completedFiles = files.filter((f) => f.status === 'done' && f.outputPath);
+  const handleDownloadZip = async (currentFiles?: QueuedFile[] | React.MouseEvent) => {
+    const targetFiles = Array.isArray(currentFiles) ? currentFiles : files;
+    const completedFiles = targetFiles.filter((f) => f.status === 'done' && f.outputPath);
     if (completedFiles.length === 0) return;
 
     setIsZipping(true);

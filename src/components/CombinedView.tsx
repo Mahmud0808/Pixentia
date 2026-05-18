@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DropZone } from './DropZone';
 import { FileCard } from './FileCard';
 import type { QueuedFile, AppSettings } from '../types';
-import { Sliders, Play, Layers, Loader2, Copy, Check } from 'lucide-react';
+import { Sliders, Play, Layers, Loader2, Copy, Check, Archive } from 'lucide-react';
 
 interface CombinedViewProps {
   files: QueuedFile[];
@@ -28,6 +28,8 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
   const [quality, setQuality] = useState(settings.compressionQuality);
   const [isProcessingAll, setIsProcessingAll] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [isZipping, setIsZipping] = useState(false);
+  const [zipSuccess, setZipSuccess] = useState(false);
 
   useEffect(() => {
     setQuality(settings.compressionQuality);
@@ -51,8 +53,8 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
     return template.replace('$base64', resultStr);
   };
 
-  const runSinglePipeline = async (file: QueuedFile) => {
-    if (!file.filePath) return;
+  const runSinglePipeline = async (file: QueuedFile): Promise<QueuedFile> => {
+    if (!file.filePath) return file;
 
     setFiles((prev) => prev.map((f) => (f.id === file.id ? { ...f, status: 'processing' } : f)));
 
@@ -64,29 +66,29 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
       });
 
       if (result.success) {
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === file.id
-              ? {
-                  ...f,
-                  status: 'done',
-                  originalSize: result.originalSize,
-                  compressedSize: result.compressedSize,
-                  percentageChange: result.percentageChange,
-                  outputPath: result.outputPath,
-                  width: result.width,
-                  height: result.height,
-                  base64: result.base64,
-                  mimeType: result.mimeType,
-                }
-              : f
-          )
-        );
+        const updatedFile: QueuedFile = {
+          ...file,
+          status: 'done',
+          originalSize: result.originalSize,
+          compressedSize: result.compressedSize,
+          percentageChange: result.percentageChange,
+          outputPath: result.outputPath,
+          width: result.width,
+          height: result.height,
+          base64: result.base64,
+          mimeType: result.mimeType,
+        };
+        setFiles((prev) => prev.map((f) => (f.id === file.id ? updatedFile : f)));
+        return updatedFile;
       } else {
-        setFiles((prev) => prev.map((f) => (f.id === file.id ? { ...f, status: 'error', error: result.error } : f)));
+        const updatedFile: QueuedFile = { ...file, status: 'error', error: result.error };
+        setFiles((prev) => prev.map((f) => (f.id === file.id ? updatedFile : f)));
+        return updatedFile;
       }
     } catch (err: any) {
-      setFiles((prev) => prev.map((f) => (f.id === file.id ? { ...f, status: 'error', error: err.message } : f)));
+      const updatedFile: QueuedFile = { ...file, status: 'error', error: err.message };
+      setFiles((prev) => prev.map((f) => (f.id === file.id ? updatedFile : f)));
+      return updatedFile;
     }
   };
 
@@ -95,10 +97,45 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
     if (idleFiles.length === 0) return;
 
     setIsProcessingAll(true);
+    const updatedFiles: QueuedFile[] = [...files];
     for (const file of idleFiles) {
-      await runSinglePipeline(file);
+      const res = await runSinglePipeline(file);
+      const idx = updatedFiles.findIndex((f) => f.id === res.id);
+      if (idx !== -1) updatedFiles[idx] = res;
     }
     setIsProcessingAll(false);
+
+    if (settings.zipAutoDownload) {
+      await handleDownloadZip(updatedFiles);
+    }
+  };
+
+  const handleDownloadZip = async (currentFiles?: QueuedFile[] | React.MouseEvent) => {
+    const targetFiles = Array.isArray(currentFiles) ? currentFiles : files;
+    const completedFiles = targetFiles.filter((f) => f.status === 'done' && f.outputPath && f.isImage);
+    if (completedFiles.length === 0) return;
+
+    setIsZipping(true);
+    try {
+      const zipFiles = completedFiles.map((f) => ({ name: f.name, outputPath: f.outputPath! }));
+      const result = await (window as any).electronAPI.createZip({
+        files: zipFiles,
+        outputDir: settings.outputDirectory,
+      });
+
+      if (result.success) {
+        setZipSuccess(true);
+        onShowToast('Successfully saved ZIP archive to output directory', 'success');
+        setTimeout(() => setZipSuccess(false), 3000);
+      } else {
+        console.error('ZIP creation failed:', result.error);
+        onShowToast(`ZIP creation failed: ${result.error}`, 'error');
+      }
+    } catch (err: any) {
+      console.error('ZIP creation error:', err);
+      onShowToast(`ZIP creation error: ${err.message}`, 'error');
+    }
+    setIsZipping(false);
   };
 
   const handleCopyAll = async () => {
@@ -118,6 +155,7 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
 
   const idleCount = files.filter((f) => f.status === 'idle').length;
   const completedCount = files.filter((f) => f.status === 'done' && f.base64).length;
+  const webpDoneCount = files.filter((f) => f.status === 'done' && f.outputPath && f.isImage).length;
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in">
@@ -176,6 +214,19 @@ export const CombinedView: React.FC<CombinedViewProps> = ({
                 {copiedAll ? 'Copied All Base64!' : `Copy All Base64 (${completedCount})`}
               </button>
             )}
+
+            <button
+              onClick={() => handleDownloadZip()}
+              disabled={webpDoneCount === 0 || isZipping}
+              className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all border shadow-sm ${
+                zipSuccess
+                  ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/25'
+                  : 'bg-slate-200 hover:bg-slate-300 dark:bg-[#27272a] dark:hover:bg-[#3f3f46] text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+              }`}
+            >
+              {zipSuccess ? <Check className="w-4 h-4 animate-scale-in" /> : isZipping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+              {zipSuccess ? 'ZIP Saved to Output!' : isZipping ? 'Bundling ZIP...' : `Download WebP (${webpDoneCount}) as ZIP`}
+            </button>
 
             <button
               onClick={handleRunAllPipeline}
