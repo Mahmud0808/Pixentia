@@ -1,6 +1,6 @@
 {
 	"name": "pixentia",
-	"description": "Professional developer asset optimization studio (WebP compressor & Base64 encoder)",
+	"description": "Professional developer asset optimization studio (WebP compressor, Base64 encoder, Combined Pipeline, and GIF to Spritesheet converter)",
 	"author": "DrDisagree",
 	"private": true,
 	"version": "1.0.0",

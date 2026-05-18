@@ -66,9 +66,6 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
               Pixentia
-              <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30">
-                Pro
-              </span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Advanced Asset Optimization Studio</p>
           </div>

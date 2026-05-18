@@ -1,6 +1,6 @@
-# ⚡ Pixentia Pro Studio
+# ⚡ Pixentia Studio
 
-**Pixentia Pro Studio** is a complete, production-ready desktop application built with modern Electron architecture, Node.js, React 19, Vite, and Tailwind CSS. It is designed as a premium developer tool with clean separation of UI, logic, and backend services.
+**Pixentia Studio** is a complete, production-ready desktop application built with modern Electron architecture, Node.js, React 19, Vite, and Tailwind CSS. It is designed as a premium developer tool with clean separation of UI, logic, and backend services.
 
 ---
 
@@ -17,12 +17,20 @@
 * **Smart Previews:** Shows high-fidelity image thumbnails for visual assets and appropriate professional file-type icons for documents, videos, and archives.
 * **MIME-Qualified Output:** Generates fully qualified Data URI Base64 strings (`data:[mime];base64,...`).
 * **Developer Ergonomics:** Provides a prominent "Copy Base64" button with visual clipboard confirmation, alongside collapsible textareas for manual inspection and selection.
+* **Customizable Output Formatting:** Features dedicated settings to remove MIME qualifiers, apply custom template strings (e.g., `<img src="$base64" />`), and enable single-click batch copying of all processed strings.
 
 ### 3. Sequential Combined Mode (Compress + Base64 Pipeline)
 * **Automated Workflow:** Integrates both tools into a seamless two-step pipeline.
 * **Intelligent Execution:** Automatically detects image assets, compresses them to WebP using the selected quality threshold, and converts the resulting highly optimized WebP binary into a Base64 Data URI. Non-image files are intelligently routed directly to the Base64 encoder.
 
-### 4. Advanced Queue Management & Persistence
+### 4. Animated GIF → Lossless Spritesheet Converter Tool
+* **Native GIF Parsing:** Automatically extracts frame count, frame rate (FPS), total duration, and original frame dimensions instantly upon loading.
+* **Aspect-Locked Dimension Synchronization:** Modify total spritesheet dimensions or individual frame sizes with real-time, two-way proportional synchronization. Ensures exact integer frame scaling for pixel-perfect game engine alignment.
+* **Custom Grid Layout:** Real-time adjustment of horizontal grid columns count with custom app-themed stepper controls.
+* **Lossless PNG Export:** Composites animated frames onto a transparent canvas and exports them as pristine, uncompressed PNG spritesheets preserving 100% original visual fidelity.
+* **Intelligent Conflict Resolution:** Preserves original filenames while automatically appending Windows-style `(1)`, `(2)` conflict counters to prevent accidental overwrites.
+
+### 5. Advanced Queue Management & Persistence
 * **Non-Destructive Queuing:** Dragging and dropping additional files appends them to the active queue without overwriting existing items.
 * **Automatic Duplicate Prevention:** Prevents identical file paths from being queued multiple times in the same session.
 * **Persistent Preferences:** Automatically saves compression quality, custom output directory, theme selection (Light/Dark), and auto-ZIP preferences across application restarts using an IPC-backed JSON store service.
