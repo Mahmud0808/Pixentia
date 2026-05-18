@@ -339,7 +339,7 @@ ipcMain.handle(
 			while (await fs.pathExists(destPath)) {
 				destPath = path.join(
 					outputDir,
-					`${parsed.name}_${counter}${parsed.ext}`,
+					`${parsed.name} (${counter})${parsed.ext}`,
 				);
 				counter++;
 			}
@@ -535,6 +535,137 @@ ipcMain.handle(
 			return {
 				success: false,
 				error: error.message || "Combined pipeline failed",
+			};
+		}
+	},
+);
+
+// ============================================================================
+// IPC HANDLERS: FEATURE 4 - GIF TO SPRITESHEET CONVERTER
+// ============================================================================
+
+ipcMain.handle("get-gif-info", async (_, { filePath }: { filePath: string }) => {
+	try {
+		const image = sharp(filePath, { animated: true });
+		const metadata = await image.metadata();
+
+		const pages = metadata.pages || 1;
+		const width = metadata.width || 0;
+		const pageHeight = metadata.pageHeight || metadata.height || 0;
+
+		const delays = metadata.delay || [100];
+		const totalDelay = delays.reduce((a, b) => a + b, 0);
+		const avgDelay = totalDelay / delays.length;
+		const fps = avgDelay > 0 ? Math.round(1000 / avgDelay) : 10;
+
+		return {
+			success: true,
+			frameCount: pages,
+			frameWidth: width,
+			frameHeight: pageHeight,
+			fps,
+			durationMs: totalDelay,
+		};
+	} catch (error: any) {
+		console.error(`GIF info error for ${filePath}:`, error);
+		return { success: false, error: error.message || "Failed to read GIF info" };
+	}
+});
+
+ipcMain.handle(
+	"generate-spritesheet",
+	async (
+		_,
+		{
+			filePath,
+			columns,
+			newFrameWidth,
+			newFrameHeight,
+			quality: _quality,
+			outputDir: _outputDir,
+		}: {
+			filePath: string;
+			columns: number;
+			newFrameWidth: number;
+			newFrameHeight: number;
+			quality: number;
+			outputDir: string;
+		},
+	) => {
+		try {
+			const parsed = path.parse(filePath);
+			const tempDir = path.join(app.getPath("temp"), "pixentia_cache");
+			await fs.ensureDir(tempDir);
+
+			let outputPath = path.join(tempDir, `${parsed.name}_spritesheet.png`);
+			let counter = 1;
+			while (await fs.pathExists(outputPath)) {
+				outputPath = path.join(
+					tempDir,
+					`${parsed.name}_spritesheet_${counter}.png`,
+				);
+				counter++;
+			}
+
+			const origBuffer = await fs.readFile(filePath);
+			const image = sharp(origBuffer, { animated: true });
+			const metadata = await image.metadata();
+
+			const pages = metadata.pages || 1;
+
+			// Extract and resize each frame
+			const frameBuffers: Buffer[] = [];
+			for (let i = 0; i < pages; i++) {
+				const frameBuf = await sharp(origBuffer, { page: i })
+					.resize(newFrameWidth, newFrameHeight, { fit: "fill" })
+					.toBuffer();
+				frameBuffers.push(frameBuf);
+			}
+
+			const rows = Math.ceil(pages / columns);
+			const actualSheetWidth = columns * newFrameWidth;
+			const actualSheetHeight = rows * newFrameHeight;
+
+			const compositeInput = frameBuffers.map((buf, i) => {
+				const col = i % columns;
+				const row = Math.floor(i / columns);
+				return {
+					input: buf,
+					left: col * newFrameWidth,
+					top: row * newFrameHeight,
+				};
+			});
+
+			await sharp({
+				create: {
+					width: actualSheetWidth,
+					height: actualSheetHeight,
+					channels: 4,
+					background: { r: 0, g: 0, b: 0, alpha: 0 },
+				},
+			})
+				.composite(compositeInput)
+				.png()
+				.toFile(outputPath);
+
+			const stat = await fs.stat(outputPath);
+
+			return {
+				success: true,
+				outputPath,
+				spritesheetWidth: actualSheetWidth,
+				spritesheetHeight: actualSheetHeight,
+				compressedSize: stat.size,
+				columns,
+				rows,
+				frameWidth: newFrameWidth,
+				frameHeight: newFrameHeight,
+			};
+		} catch (error: any) {
+			console.error(`Spritesheet generation error for ${filePath}:`, error);
+			return {
+				success: false,
+				error: error.message || "Spritesheet generation failed",
 			};
 		}
 	},

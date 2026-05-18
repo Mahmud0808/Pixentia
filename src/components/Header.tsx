@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Moon, Sun, Settings as SettingsIcon, Image, FileCode, Layers } from 'lucide-react';
+import { Sparkles, Moon, Sun, Settings as SettingsIcon, Image, FileCode, Layers, Grid } from 'lucide-react';
 import type { ActiveTab, AppSettings } from '../types';
 
 interface HeaderProps {
@@ -21,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'compressor', label: 'WebP Compressor', icon: <Image className="w-4 h-4" /> },
     { id: 'base64', label: 'Base64 Converter', icon: <FileCode className="w-4 h-4" /> },
     { id: 'combined', label: 'Combined Pipeline', icon: <Layers className="w-4 h-4" /> },
+    { id: 'spritesheet', label: 'GIF Spritesheet', icon: <Grid className="w-4 h-4 text-purple-500" /> },
   ];
 
   return (

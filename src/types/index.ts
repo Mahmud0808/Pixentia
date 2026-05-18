@@ -31,8 +31,19 @@ export interface QueuedFile {
   base64?: string;
   mimeType?: string;
   
+  // Spritesheet results / info
+  frameCount?: number;
+  fps?: number;
+  durationMs?: number;
+  spritesheetWidth?: number;
+  spritesheetHeight?: number;
+  columns?: number;
+  rows?: number;
+  frameWidth?: number;
+  frameHeight?: number;
+  
   // Error message if any
   error?: string;
 }
 
-export type ActiveTab = 'compressor' | 'base64' | 'combined' | 'settings';
+export type ActiveTab = 'compressor' | 'base64' | 'combined' | 'spritesheet' | 'settings';

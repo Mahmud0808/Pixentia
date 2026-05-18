@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { CompressorView } from './components/CompressorView';
 import { Base64View } from './components/Base64View';
 import { CombinedView } from './components/CombinedView';
+import { SpritesheetView } from './components/SpritesheetView';
 import { SettingsModal } from './components/SettingsModal';
 import { Check, AlertCircle } from 'lucide-react';
 import type { ActiveTab, AppSettings, QueuedFile } from './types';
@@ -32,6 +33,7 @@ export const App: React.FC = () => {
   const [compressorFiles, setCompressorFiles] = useState<QueuedFile[]>([]);
   const [base64Files, setBase64Files] = useState<QueuedFile[]>([]);
   const [combinedFiles, setCombinedFiles] = useState<QueuedFile[]>([]);
+  const [spritesheetFiles, setSpritesheetFiles] = useState<QueuedFile[]>([]);
 
   // Load initial settings
   useEffect(() => {
@@ -92,6 +94,8 @@ export const App: React.FC = () => {
           setBase64Files((prev) => [...prev, ...filterDuplicates(prev, newMeta)]);
         } else if (activeTab === 'combined') {
           setCombinedFiles((prev) => [...prev, ...filterDuplicates(prev, newMeta)]);
+        } else if (activeTab === 'spritesheet') {
+          setSpritesheetFiles((prev) => [...prev, ...filterDuplicates(prev, newMeta)]);
         }
       } catch (err) {
         console.error('Error fetching file metadata:', err);
@@ -185,6 +189,18 @@ export const App: React.FC = () => {
             onClearQueue={() => setCombinedFiles([])}
             onRemoveFile={(id) => setCombinedFiles((prev) => prev.filter((f) => f.id !== id))}
             onShowToast={showToast}
+          />
+        )}
+
+        {activeTab === 'spritesheet' && (
+          <SpritesheetView
+            files={spritesheetFiles}
+            setFiles={setSpritesheetFiles}
+            onFilesSelected={handleFilesSelected}
+            onClearQueue={() => setSpritesheetFiles([])}
+            onRemoveFile={(id) => setSpritesheetFiles((prev) => prev.filter((f) => f.id !== id))}
+            onShowToast={showToast}
+            settings={settings}
           />
         )}
       </main>

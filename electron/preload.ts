@@ -11,5 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   convertBase64: (options: any) => ipcRenderer.invoke('convert-base64', options),
   runCombinedPipeline: (options: any) => ipcRenderer.invoke('run-combined-pipeline', options),
   saveDownloadFile: (options: any) => ipcRenderer.invoke('save-download-file', options),
+  getGifInfo: (options: any) => ipcRenderer.invoke('get-gif-info', options),
+  generateSpritesheet: (options: any) => ipcRenderer.invoke('generate-spritesheet', options),
   getPathForFile: (file: any) => webUtils.getPathForFile(file),
 });
