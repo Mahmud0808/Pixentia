@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-[#121214] dark:text-slate-100 antialiased selection:bg-brand-500/20 selection:text-brand-400;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2.5 bg-brand-600 hover:bg-brand-500 active:bg-brand-700 text-white font-medium rounded-xl shadow-lg shadow-brand-500/25 transition-all duration-150 flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-[#27272a] dark:hover:bg-[#3f3f46] text-slate-800 dark:text-slate-200 font-medium rounded-xl transition-all duration-150 flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .card-container {
+    @apply bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(24, 24, 27, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
