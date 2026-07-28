@@ -110,7 +110,7 @@ To build the Windows production binaries, run:
 npm run build:electron
 ```
 * **Output Location:** `dist-electron-build/`
-* **Artifacts Generated:** `Pixentia Setup [version].exe` (Full Installer) and `Pixentia [version].exe` (Portable Executable).
+* **Artifacts Generated:** `Pixentia Setup [version].exe` (Full Installer, prompts for the install folder) and `Pixentia [version].exe` (Portable Executable).
 
 ### Building for macOS (DMG & ZIP)
 `electron-builder` can only produce macOS artifacts **on macOS** — the `.dmg` and `.app` formats need Apple tooling that does not exist on Windows or Linux. On a Mac, run:
@@ -177,6 +177,12 @@ To ship properly signed builds you need a paid **Apple Developer Program** membe
 3. Remove the `CSC_IDENTITY_AUTO_DISCOVERY: false` line from `build.yml` and set `"notarize": true` under `build.mac` in `package.json`.
 
 Signing is *not* required to distribute the app — it only removes the Gatekeeper warning. Windows builds are unsigned too and may show a SmartScreen prompt.
+
+### ⚠️ Windows: nothing happens on launch
+
+On a few Windows systems the app cannot start from inside your user profile. The installer asks where to put it — pick a path outside `C:\Users`, such as `D:\Programs\Pixentia`.
+
+The portable exe unpacks to `%TEMP%` on every run, so it is affected by the same limitation. To keep an existing install where it is, add `--disable-gpu-sandbox` to the shortcut's target.
 
 ---
 
