@@ -2,6 +2,8 @@
 
 **Pixentia Studio** is a complete, production-ready desktop application built with modern Electron architecture, Node.js, React 19, Vite, and Tailwind CSS. It is designed as a premium developer tool with clean separation of UI, logic, and backend services.
 
+![Pixentia Studio — WebP Compressor view](docs/screenshot.png)
+
 ---
 
 ## 🚀 Key Features & Capabilities
@@ -87,6 +89,15 @@ Launch the application in development mode with live hot-reloading for both the 
 npm run dev
 ```
 
+> **Running from an integrated terminal?** VS Code (and some other Electron-based editors) export `ELECTRON_RUN_AS_NODE=1` into their terminals. That makes `electron.exe` boot as plain Node, and the app crashes at startup with `SyntaxError: The requested module 'electron' does not provide an export named 'BrowserWindow'`. Clear it first:
+>
+> ```powershell
+> $env:ELECTRON_RUN_AS_NODE = $null   # PowerShell
+> ```
+> ```bash
+> unset ELECTRON_RUN_AS_NODE          # bash / zsh
+> ```
+
 ---
 
 ## 📦 Production Build Instructions
@@ -102,14 +113,70 @@ npm run build:electron
 * **Artifacts Generated:** `Pixentia Setup [version].exe` (Full Installer) and `Pixentia [version].exe` (Portable Executable).
 
 ### Building for macOS (DMG & ZIP)
-To build for macOS (on a Mac environment), run:
+`electron-builder` can only produce macOS artifacts **on macOS** — the `.dmg` and `.app` formats need Apple tooling that does not exist on Windows or Linux. On a Mac, run:
 ```bash
 npm run build:electron
 ```
 * **Output Location:** `dist-electron-build/`
 * **Artifacts Generated:** `Pixentia-[version].dmg` (Disk Image) and `Pixentia-[version]-mac.zip`.
 
+If you do not own a Mac, use the GitHub Actions workflow below — GitHub's hosted macOS runners build it for you.
+
+### Building for Linux (AppImage)
+```bash
+npm run build:electron
+```
+* **Artifacts Generated:** `Pixentia-[version].AppImage` (portable, runs on most distros).
+* `.deb` / `.rpm` targets are not enabled because `electron-builder` requires a maintainer email for them. To add one, set `"linux": { "maintainer": "Your Name <you@example.com>", "target": ["AppImage", "deb"] }` in `package.json`.
+
 > **Note on Native Dependencies:** `electron-builder` is explicitly configured to unpack `sharp` binaries (`asarUnpack`), ensuring pristine performance and compatibility in production packages without missing native binding errors.
+
+---
+
+## 🤖 Automated Multi-Platform Builds (GitHub Actions)
+
+Two workflows live in `.github/workflows/`:
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| `ci.yml` | Every push / PR to `main` | Typecheck + bundle only. Fast and cheap; no installers. |
+| `build.yml` | Manual (**Actions → Build → Run workflow**) or pushing a `v*` tag | Packages Windows, macOS (Apple Silicon **and** Intel), and Linux in parallel, then uploads the installers. |
+
+### Running a manual all-platform build
+1. Go to the repository's **Actions** tab → **Build** → **Run workflow**.
+2. Leave *release* unchecked to get downloadable build artifacts only (kept 30 days), or check it and supply a tag such as `v1.0.0` to also create a **draft** GitHub Release with every installer attached.
+
+Pushing a tag does the same thing automatically:
+```bash
+npm version 1.0.1        # bumps package.json and creates the v1.0.1 tag
+git push --follow-tags
+```
+
+The release is created as a **draft** so you can review the assets and write the notes before making it public.
+
+### Artifacts produced per platform
+
+| Platform | Runner | Files |
+| --- | --- | --- |
+| Windows x64 | `windows-latest` | `Pixentia Setup [version].exe` (NSIS installer), `Pixentia [version].exe` (portable) |
+| macOS arm64 | `macos-latest` | `.dmg`, `-mac.zip` |
+| macOS x64 | `macos-13` | `.dmg`, `-mac.zip` |
+| Linux x64 | `ubuntu-latest` | `.AppImage` |
+
+Both macOS architectures are built on their own native runner rather than cross-compiled, because `sharp` ships per-architecture native binaries and `npm ci` only installs the ones matching the host.
+
+### ⚠️ macOS builds are unsigned
+CI sets `CSC_IDENTITY_AUTO_DISCOVERY=false`, so the macOS artifacts are **not code-signed or notarized**. They work, but Gatekeeper blocks the first launch; users must right-click the app → **Open**, or run:
+```bash
+xattr -cr /Applications/Pixentia.app
+```
+
+To ship properly signed builds you need a paid **Apple Developer Program** membership (~$99/year). Then:
+1. Export your *Developer ID Application* certificate as a `.p12` and base64-encode it.
+2. Add repository secrets: `CSC_LINK` (the base64 `.p12`), `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`.
+3. Remove the `CSC_IDENTITY_AUTO_DISCOVERY: false` line from `build.yml` and set `"notarize": true` under `build.mac` in `package.json`.
+
+Signing is *not* required to distribute the app — it only removes the Gatekeeper warning. Windows builds are unsigned too and may show a SmartScreen prompt.
 
 ---
 

@@ -17,7 +17,8 @@
 		"appId": "com.pixentia.app",
 		"productName": "Pixentia",
 		"directories": {
-			"output": "dist-electron-build"
+			"output": "dist-electron-build",
+			"buildResources": "build-resources"
 		},
 		"files": [
 			"dist/**/*",
@@ -37,7 +38,16 @@
 			"target": [
 				"dmg",
 				"zip"
-			]
+			],
+			"category": "public.app-category.developer-tools",
+			"hardenedRuntime": true,
+			"notarize": false
+		},
+		"linux": {
+			"target": [
+				"AppImage"
+			],
+			"category": "Graphics"
 		}
 	},
 	"dependencies": {

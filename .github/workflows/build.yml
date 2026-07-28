@@ -1,18 +1,54 @@
-name: Build Electron Windows App
+name: Build
 
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
     workflow_dispatch:
+        inputs:
+            release:
+                description: "Publish a GitHub Release with the built artifacts"
+                type: boolean
+                default: false
+            tag:
+                description: "Release tag (required when 'release' is checked, e.g. v1.0.0)"
+                type: string
+                required: false
+    push:
+        tags: ["v*"]
+
+concurrency:
+    group: build-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-    build:
-        runs-on: windows-latest
+    package:
+        name: ${{ matrix.label }}
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      label: Windows (x64)
+                      slug: windows-x64
+                      artifacts: dist-electron-build/*.exe
+                    - os: macos-latest
+                      label: macOS (Apple Silicon)
+                      slug: macos-arm64
+                      artifacts: |
+                          dist-electron-build/*.dmg
+                          dist-electron-build/*.zip
+                    - os: macos-13
+                      label: macOS (Intel)
+                      slug: macos-x64
+                      artifacts: |
+                          dist-electron-build/*.dmg
+                          dist-electron-build/*.zip
+                    - os: ubuntu-latest
+                      label: Linux (x64)
+                      slug: linux-x64
+                      artifacts: dist-electron-build/*.AppImage
 
         steps:
-            - name: Checkout Repository
+            - name: Checkout repository
               uses: actions/checkout@v4
 
             - name: Setup Node.js
@@ -21,17 +57,53 @@ jobs:
                   node-version: 24.15.0
                   cache: "npm"
 
-            - name: Install Dependencies
+            - name: Install dependencies
               run: npm ci
 
-            - name: Build Electron App
-              run: npm run build:electron
+            - name: Build and package
+              run: npm run build:electron -- --publish never
               env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CSC_IDENTITY_AUTO_DISCOVERY: false
 
-            - name: Upload Windows Executables
+            - name: Upload artifacts
               uses: actions/upload-artifact@v4
               with:
-                  name: Pixentia-Windows-Executables
-                  path: dist-electron-build/*.exe
+                  name: Pixentia-${{ matrix.slug }}
+                  path: ${{ matrix.artifacts }}
                   if-no-files-found: error
+                  retention-days: 30
+
+    release:
+        name: Publish release
+        needs: package
+        if: github.event_name == 'push' || inputs.release
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: artifacts
+                  merge-multiple: true
+
+            - name: Create or update the release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+              run: |
+                  set -euo pipefail
+                  if [ -z "$TAG" ]; then
+                    echo "::error::No tag provided. Re-run the workflow with a 'tag' input (e.g. v1.0.0)."
+                    exit 1
+                  fi
+                  ls -lh artifacts
+                  if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+                    gh release upload "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" --clobber
+                  else
+                    gh release create "$TAG" artifacts/* \
+                      --repo "$GITHUB_REPOSITORY" \
+                      --title "Pixentia $TAG" \
+                      --generate-notes \
+                      --draft
+                  fi
